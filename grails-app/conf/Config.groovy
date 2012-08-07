@@ -27,3 +27,7 @@ log4j = {
 
 recentDomain.autoscan.actions = ['*:show'] // ['*:show[0]'] to scan only first domain instance in model?
 recentDomain.exclude = [grails.plugins.recentdomain.test.TestEntity2, "grails.plugins.recentdomain.test.TestEntity3"]
+recentDomain.icon.testEntity1 = 'icon_heart'
+recentDomain.icon.testEntity2 = 'icon_home'
+recentDomain.icon.testEntity3 = 'icon_camera'
+recentDomain.icon.testEntity4 = 'icon_asterisk'

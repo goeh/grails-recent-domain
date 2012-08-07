@@ -143,15 +143,36 @@ class RecentDomainServiceTests extends GroovyTestCase {
         assert !recentDomainService.getHistory(request).contains(obj)
     }
 
+    void testClearHistory() {
+        def request = [session: [:]] // Mock new request
+
+        recentDomainService.remember(new TestEntity1(name: "TestEntity1").save(failOnError: true, flush: true), request)
+        recentDomainService.remember(new TestEntity4(name: "TestEntity4").save(failOnError: true, flush: true), request)
+        assert recentDomainService.getHistory(request).size() == 2
+        assert recentDomainService.getHistory(request, TestEntity1).size() == 1
+        assert recentDomainService.getHistory(request, TestEntity4).size() == 1
+
+        recentDomainService.clearHistory(request, TestEntity4)
+
+        assert recentDomainService.getHistory(request).size() == 1
+        assert recentDomainService.getHistory(request, TestEntity1).size() == 1
+        assert recentDomainService.getHistory(request, TestEntity4).size() == 0
+
+        recentDomainService.clearHistory(request)
+
+        assert recentDomainService.getHistory(request).size() == 0
+        assert recentDomainService.getHistory(request, TestEntity1).size() == 0
+        assert recentDomainService.getHistory(request, TestEntity4).size() == 0
+    }
+
     void testConvert() {
-        def locale = Locale.getDefault()
-        assert recentDomainService.convert([], locale).size() == 0
+        assert recentDomainService.convert([]).size() == 0
 
         def instance1 = new TestEntity1(name: "Instance 1").save(failOnError: true, flush: true)
         def instance2 = new TestEntity4(name: "Instance 2").save(failOnError: true, flush: true)
         assert instance1 != null
         assert instance2 != null
-        def list = recentDomainService.convert([instance1, instance2], locale)
+        def list = recentDomainService.convert([instance1, instance2])
         assert list.size() == 2
         def handle = list[0]
         assert handle != null

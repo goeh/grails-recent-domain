@@ -68,7 +68,7 @@ class RecentDomainService implements InitializingBean {
         }
     }
 
-    private List getList(session, type = '*') {
+    private List<DomainHandle> getList(session, type = null) {
         if (session == null) {
             return null
         }
@@ -83,6 +83,9 @@ class RecentDomainService implements InitializingBean {
                 }
             }
         }
+        if (!type) {
+            type = '*'
+        }
         if (type instanceof Class) {
             type = type.name
         }
@@ -91,14 +94,14 @@ class RecentDomainService implements InitializingBean {
             synchronized (map) {
                 list = map[type]
                 if (list == null) {
-                    list = map[type] = new LinkedList()
+                    list = map[type] = new LinkedList<DomainHandle>()
                 }
             }
         }
         return list
     }
 
-    private List getExcludeList(request) {
+    private List<DomainHandle> getExcludeList(request) {
         def tenant = currentTenant?.get() ?: 0
         def key = 'RECENT_DOMAIN_EXCLUDE.' + tenant
         def set = new HashSet()
@@ -117,7 +120,7 @@ class RecentDomainService implements InitializingBean {
         return set as List
     }
 
-    DomainHandle remember(domainInstance, request) {
+    DomainHandle remember(domainInstance, request, String tag = null) {
         def session = request?.session
         if (session == null) {
             throw new IllegalArgumentException("No HTTP session")
@@ -136,13 +139,15 @@ class RecentDomainService implements InitializingBean {
         }
 
         def handle = createHandle(domainInstance)
-
+        if (tag) {
+            handle.addTag(tag)
+        }
         if (log.isDebugEnabled()) {
-            log.debug "Remembering: ${handle.type} \"${handle}\""
+            log.debug "Remembered: ${handle.type} \"${handle}\"${tag ? ' with tag ' + tag + ' ' + handle.tags : ''}"
         }
 
-        add(handle, getList(session, handle.type))
         add(handle, getList(session))
+        add(handle, getList(session, handle.type))
 
         return handle
     }
@@ -163,31 +168,59 @@ class RecentDomainService implements InitializingBean {
                 // and String instances (domain class name).
                 if (!(excluded.contains(handle) || excluded.contains(handle.type))) {
                     if (log.isDebugEnabled()) {
-                        log.debug "Remembering: ${handle.type} \"${handle}\""
+                        log.debug "Remembered: ${handle.type} \"${handle}\""
                     }
-                    add(handle, getList(session, handle.type))
                     add(handle, getList(session))
+                    add(handle, getList(session, handle.type))
                 }
             }
         }
     }
 
-    private void add(handle, fifo) {
-        if (fifo.remove(handle)) {
-            log.debug "Moved to top: ${handle.type} \"${handle}\""
-        }
-        fifo << handle
-        if (fifo.size() > maxHistorySize) {
-            fifo.remove()
+    private void add(DomainHandle handle, List<DomainHandle> fifo) {
+        synchronized (fifo) {
+            def existing = fifo.find {it == handle}
+            if (existing) {
+                for (tag in handle.tags) {
+                    existing.addTag(tag)
+                }
+                handle = existing // Use existing instance, not the supplied one.
+                fifo.remove(existing)
+                log.debug "Moved to top: ${handle.type} \"${handle}\""
+            }
+            fifo << handle
+            if (fifo.size() > maxHistorySize) {
+                fifo.remove()
+            }
         }
     }
 
-    def remove(domainInstance, request) {
+    boolean forget(domainInstance, request, String tag = null) {
+        remove(domainInstance, request, tag)
+    }
+
+    boolean remove(domainInstance, request, String tag = null) {
         def handle = createHandle(domainInstance)
-        def obj1 = getList(request?.session, handle.type)?.remove(handle)
-        def obj2 = getList(request?.session)?.remove(handle)
-        log.debug("Removed: (${handle.type}) \"${handle}\"")
-        return obj1 ?: obj2
+        def list = getList(request?.session)
+        def rval1 = false
+        def rval2 = false
+        if (list) {
+            if (tag) {
+                list.find {it == handle}?.removeTag(tag)
+            } else {
+                rval1 = list.remove(handle)
+            }
+        }
+        list = getList(request?.session, handle.type)
+        if (list) {
+            if (tag) {
+                list.find {it == handle}?.removeTag(tag)
+            } else {
+                rval2 = list.remove(handle)
+            }
+        }
+        log.debug "Forgot: ${handle.type} \"${handle}\"${tag ? ' with tag ' + tag + ' ' + handle.tags : ''}"
+        return rval1 ?: rval2
     }
 
     DomainHandle exclude(domainInstance, request, permanent = false) {
@@ -220,22 +253,24 @@ class RecentDomainService implements InitializingBean {
         return handle
     }
 
-    List getHistory(request, type = '*') {
-        Collections.unmodifiableList(getList(request?.session, type) ?: Collections.EMPTY_LIST)
+    List<DomainHandle> getHistory(def request, def type = null, String tag = null) {
+        def list = getList(request?.session, type ?: '*')
+        if (list) {
+            if (tag) {
+                list = list.findAll {it.isTagged(tag)}
+            } else {
+                list = Collections.unmodifiableList(list)
+            }
+        }
+        return list ?: Collections.EMPTY_LIST
     }
 
-    void clearHistory(request, type = '*') {
+    void clearHistory(request, type = null) {
         def session = request?.session
         if (session == null) {
             return
         }
-        if (type == '*') {
-            for (domainName in domainClasses) {
-                clearHistory(request, domainName)
-            }
-            getList(session).clear()
-            log.debug("Cleared recent domain history for all types")
-        } else {
+        if (type && type != '*') {
             if (type instanceof Class) {
                 type = type.name
             }
@@ -250,10 +285,21 @@ class RecentDomainService implements InitializingBean {
                 }
             }
             log.debug("Cleared recent domain history for type ${type}")
+        } else {
+            for (domainName in domainClasses) {
+                clearHistory(request, domainName)
+            }
+            getList(session).clear()
+            log.debug("Cleared recent domain history for all types")
         }
     }
 
-    List convert(Collection domainInstanceList) {
+    /**
+     * Convert list of domain instances to list of DomainHandle instances.
+     * @param domainInstanceList List of domain instances
+     * @return List of DomainHandle instances
+     */
+    List<DomainHandle> convert(Collection domainInstanceList) {
         def result = []
         for (obj in domainInstanceList) {
             if (domainClasses.contains(Hibernate.getClass(obj)?.name) && obj.ident()) {
@@ -270,7 +316,10 @@ class RecentDomainService implements InitializingBean {
         }
         if (!handle.icon) {
             def prop = GrailsNameUtils.getPropertyName(domainInstance.class)
-            handle.icon = grailsApplication.config.recentDomain.icon."$prop"
+            def icon = grailsApplication.config.recentDomain.icon."$prop"
+            if (icon) {
+                handle.icon = icon
+            }
         }
         return handle
     }

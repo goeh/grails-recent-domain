@@ -28,6 +28,7 @@ class DomainHandle implements Serializable {
     String label
     String url
     String icon
+    Set tags
 
     private DomainHandle() {}
 
@@ -62,6 +63,25 @@ class DomainHandle implements Serializable {
 
     String getAction() {
         'show'
+    }
+
+    void addTag(String tag) {
+        if(tags == null) {
+            tags = [] as Set
+        }
+        tags << tag
+    }
+
+    boolean removeTag(String tag) {
+        tags ? tags.remove(tag) : false
+    }
+
+    boolean isTagged(String tag) {
+        tags?.contains(tag)
+    }
+
+    void removeAllTags() {
+        tags = null
     }
 
     String toString() {

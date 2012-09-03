@@ -17,6 +17,7 @@
 package grails.plugins.recentdomain
 
 import grails.plugins.recentdomain.test.*
+import org.springframework.mock.web.MockHttpSession
 
 class RecentDomainServiceTests extends GroovyTestCase {
 
@@ -24,13 +25,13 @@ class RecentDomainServiceTests extends GroovyTestCase {
     def recentDomainService
 
     void testHistoryIsEmpty() {
-        def session = [:]
+        def session = new MockHttpSession()
         def request = [session: session]
         assert recentDomainService.getHistory(request).isEmpty()
     }
 
     void testUnique() {
-        def session = [:]
+        def session = new MockHttpSession()
         def request
         def instance = new TestEntity1(name: "Instance 1").save(failOnError: true, flush: true)
         5.times {
@@ -43,7 +44,7 @@ class RecentDomainServiceTests extends GroovyTestCase {
     }
 
     void testTrack() {
-        def session = [:]
+        def session = new MockHttpSession()
         def request
         def overflow = 7
         (recentDomainService.maxHistorySize + overflow).times {
@@ -58,7 +59,7 @@ class RecentDomainServiceTests extends GroovyTestCase {
     }
 
     void testTrackExcluded() {
-        def session = [:]
+        def session = new MockHttpSession()
         def request = [session: session] // Mock new request
         // NOTE configuration cannot be set/changed here because it's to late.
         // RecentDomainService initializes config when Spring initializes the service.
@@ -76,7 +77,7 @@ class RecentDomainServiceTests extends GroovyTestCase {
     }
 
     void testMoveToTop() {
-        def session = [:]
+        def session = new MockHttpSession()
         def request
         5.times {
             request = [session: session] // Mock new request
@@ -95,7 +96,7 @@ class RecentDomainServiceTests extends GroovyTestCase {
     }
 
     void testExcludePermanent() {
-        def session = [:]
+        def session = new MockHttpSession()
         def request = [session: session] // Mock first request
         3.times {
             new TestEntity1(name: "Instance ${it + 1}").save(failOnError: true, flush: true)
@@ -114,7 +115,7 @@ class RecentDomainServiceTests extends GroovyTestCase {
     }
 
     void testExcludeOnce() {
-        def session = [:]
+        def session = new MockHttpSession()
         def request = [session: session] // Mock first request
         def instance = new TestEntity1(name: "Instance 1").save(failOnError: true, flush: true)
         recentDomainService.exclude(instance, request, false)
@@ -144,7 +145,7 @@ class RecentDomainServiceTests extends GroovyTestCase {
     }
 
     void testClearHistory() {
-        def request = [session: [:]] // Mock new request
+        def request = [session: new MockHttpSession()] // Mock new request
 
         recentDomainService.remember(new TestEntity1(name: "TestEntity1").save(failOnError: true, flush: true), request)
         recentDomainService.remember(new TestEntity4(name: "TestEntity4").save(failOnError: true, flush: true), request)
@@ -179,6 +180,35 @@ class RecentDomainServiceTests extends GroovyTestCase {
         assert (handle instanceof DomainHandle)
         assert handle.toString() == "Instance 1"
         assert instance1.id == handle.id
+    }
+
+    void testTags() {
+        def testEntity1 = new TestEntity1(name: "Hello").save(failOnError: true, flush: true)
+        def testEntity2 = new TestEntity1(name: "World").save(failOnError: true, flush: true)
+        def request = [session: new MockHttpSession()] // Mock new request
+        def tag = "test"
+        assert recentDomainService.getHistory(request, null, tag).isEmpty()
+        recentDomainService.remember(testEntity1, request)
+        recentDomainService.remember(testEntity2, request, tag)
+
+        assert recentDomainService.getHistory(request, null).size() == 2
+        assert recentDomainService.getHistory(request, null, tag).size() == 1
+        def obj = recentDomainService.getHistory(request, null, tag).first()
+        assert obj.label == testEntity2.name
+
+        recentDomainService.remember(testEntity2, request, 'foo')
+        recentDomainService.remember(testEntity2, request, 'bar')
+        obj = recentDomainService.getHistory(request, null, 'foo').first()
+        assert obj.tags.size() == 3
+        assert obj.tags.contains(tag)
+        assert obj.tags.contains('foo')
+        assert obj.tags.contains('bar')
+
+        recentDomainService.forget(testEntity2, request, 'foo')
+        assert obj.tags.size() == 2
+        recentDomainService.forget(testEntity2, request, 'bar')
+        assert obj.tags.size() == 1
+        assert obj.tags.toList() == [tag]
     }
 
 }

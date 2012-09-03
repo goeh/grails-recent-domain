@@ -25,28 +25,41 @@ class RecentDomainTagLib {
 
     def recentDomainService
 
+    /**
+     * Render tag body if recent domain history exists.
+     *
+     * @attr type type of domain to look for
+     * @attr tag optional tag filter
+     */
+
     def hasHistory = {attrs, body ->
         def type = attrs.type ? (attrs.type instanceof Class ? attrs.type.name : attrs.type.toString()) : null
-        def list = type ? recentDomainService.getHistory(request, type) : recentDomainService.getHistory(request)
+        def tag = attrs.tag ?: null
+        def list = recentDomainService.getHistory(request, type, tag)
+        request.RECENT_DOMAIN_LIST = list
         if (!list.isEmpty()) {
             out << body()
         }
     }
 
     /**
-     * Iterate over domain history.
-     * @param type type of domain to iterate over
-     * @param reverse true for reversed list (last visited first)
-     * @param max max number of domain to iterate
-     * @param var name of attribute holding reference to domain
-     * @param status name of attribute holding iteration counter
+     * Iterate over domain history and render tag body for each domain found.
+     *
+     * @attr type type of domain to iterate over
+     * @attr tag optional tag filter
+     * @attr reverse true for reversed list (last visited first)
+     * @attr max max number of domain to iterate
+     * @attr var name of attribute holding reference to domain
+     * @attr status name of attribute holding iteration counter
      */
     def each = {attrs, body ->
         def type = attrs.type ? (attrs.type instanceof Class ? attrs.type.name : attrs.type.toString()) : null
-        def list = type ? recentDomainService.getHistory(request, type) : recentDomainService.getHistory(request)
+        def tag = attrs.tag ?: null
+        def list = request.RECENT_DOMAIN_LIST ?: recentDomainService.getHistory(request, type, tag)
         if (list) {
             renderList(list, attrs, body)
         }
+        request.RECENT_DOMAIN_LIST = null
     }
 
     private void renderList(List list, Map attrs, Closure body) {
@@ -81,14 +94,4 @@ class RecentDomainTagLib {
         }
     }
 
-    def eachList = {attrs, body ->
-        def list = attrs.remove('list')
-        if (list == null) {
-            throwTagError("Tag [eachList] is missing required attribute [list]")
-        }
-        if (!list.isEmpty()) {
-            def locale = request.locale ?: Locale.getDefault()
-            renderList(recentDomainService.convert(list, locale), attrs, body)
-        }
-    }
 }

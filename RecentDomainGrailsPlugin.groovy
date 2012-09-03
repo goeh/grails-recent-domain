@@ -1,6 +1,6 @@
 class RecentDomainGrailsPlugin {
     // the plugin version
-    def version = "0.2.1"
+    def version = "0.3.4"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.3 > *"
     // the other plugins this plugin depends on
@@ -41,14 +41,6 @@ provides tags for rendering "recent viewed" lists.
     // Online location of the plugin's browseable source code.
     def scm = [ url: "https://github.com/goeh/grails-recent-domain" ]
 
-    def doWithWebDescriptor = { xml ->
-        // TODO Implement additions to web.xml (optional), this event occurs before
-    }
-
-    def doWithSpring = {
-        // TODO Implement runtime spring config (optional)
-    }
-
     def doWithDynamicMethods = { ctx ->
         def config = application.config
         def service = ctx.getBean('recentDomainService')
@@ -74,20 +66,13 @@ provides tags for rendering "recent viewed" lists.
         }
     }
 
-    def onConfigChange = { event ->
-        // TODO Implement code that is executed when the project configuration changes.
-        // The event is the same as for 'onChange'.
-    }
-
-    def onShutdown = { event ->
-        // TODO Implement code that is executed when the application shuts down (optional)
-    }
-
-
     private void addControllerMethods(config, mc, service) {
 
-        mc.rememberDomain = {domainInstance ->
-            service.remember(domainInstance, request)
+        mc.rememberDomain = {Object domainInstance, String tag = null ->
+            service.remember(domainInstance, request, tag)
+        }
+        mc.forgetDomain = {Object domainInstance, String tag = null ->
+            service.remove(domainInstance, request, tag)
         }
     }
 }

@@ -196,11 +196,14 @@ class RecentDomainService implements InitializingBean {
     }
 
     boolean forget(domainInstance, request, String tag = null) {
-        remove(domainInstance, request, tag)
+        removeHandle(createHandle(domainInstance), request, tag)
     }
 
     boolean remove(domainInstance, request, String tag = null) {
-        def handle = createHandle(domainInstance)
+        removeHandle(createHandle(domainInstance), request, tag)
+    }
+
+    boolean removeHandle(DomainHandle handle, request, String tag = null) {
         def list = getList(request?.session)
         def rval1 = false
         def rval2 = false
@@ -307,6 +310,18 @@ class RecentDomainService implements InitializingBean {
             }
         }
         return result
+    }
+
+    /**
+     * Find existing domain handle based on type and id.
+     *
+     * @param type domain class name
+     * @param id primary key
+     * @param request request
+     * @return DomainHandle or null if not found
+     */
+    DomainHandle find(String type, Object id, Object request) {
+        getList(request?.session, type)?.find{it.type == type && it.id == id}
     }
 
     private DomainHandle createHandle(Object domainInstance) {

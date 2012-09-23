@@ -211,4 +211,24 @@ class RecentDomainServiceTests extends GroovyTestCase {
         assert obj.tags.toList() == [tag]
     }
 
+    void testFind() {
+        def testEntity1 = new TestEntity1(name: "Hello").save(failOnError: true, flush: true)
+        def testEntity2 = new TestEntity1(name: "World").save(failOnError: true, flush: true)
+        def request = [session: new MockHttpSession()] // Mock new request
+        recentDomainService.remember(testEntity1, request)
+        recentDomainService.remember(testEntity2, request, "foo")
+        recentDomainService.remember(testEntity2, request, "bar")
+        assert recentDomainService.find(testEntity1.class.name, testEntity1.id, request).id == testEntity1.id
+        def handle = recentDomainService.find(testEntity2.class.name, testEntity2.id, request)
+        assert handle.id == testEntity2.id
+
+        assert handle.tags.size() == 2
+        handle.tags.clear()
+        handle = recentDomainService.find(testEntity2.class.name, testEntity2.id, request)
+        assert handle.tags.size() == 0
+        recentDomainService.removeHandle(handle, request)
+        handle = recentDomainService.find(testEntity2.class.name, testEntity2.id, request)
+        assert handle == null
+    }
+
 }

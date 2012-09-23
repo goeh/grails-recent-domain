@@ -1,6 +1,22 @@
+/*
+ * Copyright (c) 2012 Goran Ehrsson.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 class RecentDomainGrailsPlugin {
     // the plugin version
-    def version = "0.3.4"
+    def version = "0.4.0"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "1.3 > *"
     // the other plugins this plugin depends on
@@ -9,8 +25,8 @@ class RecentDomainGrailsPlugin {
     def pluginExcludes = [
         "grails-app/views/error.gsp",
         "grails-app/views/test/**/*.gsp",
-        "grails-app/domain/**/*",
-        "grails-app/controllers/**/*"
+        "grails-app/domain/grails/plugins/recentdomain/test/*.groovy",
+        "grails-app/controllers/grails/plugins/recentdomain/test/*.groovy"
     ]
 
     def title = "Recent Domain Plugin"

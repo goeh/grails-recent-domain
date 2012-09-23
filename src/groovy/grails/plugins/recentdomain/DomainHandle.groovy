@@ -66,7 +66,7 @@ class DomainHandle implements Serializable {
     }
 
     void addTag(String tag) {
-        if(tags == null) {
+        if (tags == null) {
             tags = [] as Set
         }
         tags << tag
@@ -86,6 +86,10 @@ class DomainHandle implements Serializable {
 
     String toString() {
         return label ?: domain
+    }
+
+    Map<String, Object> toMap() {
+        [type: type, id: id, label: label, url: url, icon: icon, tags: tags]
     }
 
     int hashCode() {

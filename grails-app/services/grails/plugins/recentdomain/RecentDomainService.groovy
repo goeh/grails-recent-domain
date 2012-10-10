@@ -16,7 +16,7 @@
 
 package grails.plugins.recentdomain
 
-import org.hibernate.Hibernate
+import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
 import grails.util.GrailsNameUtils
 import org.springframework.beans.factory.InitializingBean
 
@@ -29,7 +29,7 @@ class RecentDomainService implements InitializingBean {
     def grailsApplication
     def currentTenant
 
-    private List domainClasses = []
+    private List<String> domainClasses = []
 
     int getMaxHistorySize() {
         return this.@maxHistorySize
@@ -120,6 +120,10 @@ class RecentDomainService implements InitializingBean {
         return set as List
     }
 
+    private boolean isDomainClass(obj) {
+        domainClasses.contains(GrailsHibernateUtil.unwrapIfProxy(obj).getClass().getName())
+    }
+
     DomainHandle remember(domainInstance, request, String tag = null) {
         def session = request?.session
         if (session == null) {
@@ -130,7 +134,7 @@ class RecentDomainService implements InitializingBean {
             throw new NullPointerException("Argument [domainInstance] is null")
         }
 
-        if (!domainClasses.contains(Hibernate.getClass(domainInstance)?.name)) {
+        if (!isDomainClass(domainInstance)) {
             throw new IllegalArgumentException("${domainInstance.class.name} is not a valid recent-domain type")
         }
 
@@ -158,11 +162,11 @@ class RecentDomainService implements InitializingBean {
             return
         }
         if (domains instanceof Map) {
-            domains = domains.values()
+            domains = domains.values().findAll {it}
         }
         def excluded = getExcludeList(request)
         for (obj in domains) {
-            if (obj != null && domainClasses.contains(Hibernate.getClass(obj)?.name) && ((!obj.hasProperty('version')) || obj.version != null)) {
+            if (isDomainClass(obj) && ((!obj.hasProperty('version')) || obj.version != null)) {
                 def handle = createHandle(obj)
                 // Excluded list can contain both DomainHandle instances
                 // and String instances (domain class name).
@@ -305,7 +309,7 @@ class RecentDomainService implements InitializingBean {
     List<DomainHandle> convert(Collection domainInstanceList) {
         def result = []
         for (obj in domainInstanceList) {
-            if (domainClasses.contains(Hibernate.getClass(obj)?.name) && obj.ident()) {
+            if (isDomainClass(obj) && obj.ident()) {
                 result << createHandle(obj)
             }
         }
@@ -321,16 +325,17 @@ class RecentDomainService implements InitializingBean {
      * @return DomainHandle or null if not found
      */
     DomainHandle find(String type, Object id, Object request) {
-        getList(request?.session, type)?.find{it.type == type && it.id == id}
+        getList(request?.session, type)?.find {it.type == type && it.id == id}
     }
 
     private DomainHandle createHandle(Object domainInstance) {
+        domainInstance = GrailsHibernateUtil.unwrapIfProxy(domainInstance)
         def handle = new DomainHandle(domainInstance)
         if (domainInstance.hasProperty('icon')) {
             handle.icon = domainInstance.icon?.toString()
         }
         if (!handle.icon) {
-            def prop = GrailsNameUtils.getPropertyName(domainInstance.class)
+            def prop = GrailsNameUtils.getPropertyName(domainInstance.getClass())
             def icon = grailsApplication.config.recentDomain.icon."$prop"
             if (icon) {
                 handle.icon = icon

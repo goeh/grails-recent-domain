@@ -16,7 +16,6 @@
 
 package grails.plugins.recentdomain
 
-import org.hibernate.Hibernate
 import grails.util.GrailsNameUtils
 
 /**
@@ -32,8 +31,8 @@ class DomainHandle implements Serializable {
 
     private DomainHandle() {}
 
-    DomainHandle(Object obj) {
-        type = Hibernate.getClass(obj).name
+    protected DomainHandle(Object obj) {
+        type = obj.getClass().getName()
         id = obj.ident()
         label = obj.toString()
     }

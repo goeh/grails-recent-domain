@@ -15,46 +15,26 @@
  */
 
 class RecentDomainGrailsPlugin {
-    // the plugin version
-    def version = "0.5.0"
-    // the version or versions of Grails the plugin is designed for
-    def grailsVersion = "1.3 > *"
-    // the other plugins this plugin depends on
+    def version = "0.6.0-SNAPSHOT"
+    def grailsVersion = "2.0 > *"
     def dependsOn = [:]
-    // resources that are excluded from plugin packaging
     def pluginExcludes = [
         "grails-app/views/error.gsp",
         "grails-app/views/test/**/*.gsp",
         "grails-app/domain/grails/plugins/recentdomain/test/*.groovy",
         "grails-app/controllers/grails/plugins/recentdomain/test/*.groovy"
     ]
-
-    def title = "Recent Domain Plugin"
+    def title = "Recent Domain List"
     def author = "Goran Ehrsson"
     def authorEmail = "goran@technipelago.se"
     def description = '''\
 This plugin remembers what domain instances has been viewed by a user and
-provides tags for rendering "recent viewed" lists.
+provides tags for rendering "recent viewed" or "crumb trail" lists.
 '''
-
-    // URL to the plugin's documentation
-    def documentation = "http://grails.org/plugin/recent-domain"
-
-    // Extra (optional) plugin metadata
-
-    // License: one of 'APACHE', 'GPL2', 'GPL3'
+    def documentation = "https://github.com/goeh/grails-recent-domain"
     def license = "APACHE"
-
-    // Details of company behind the plugin (if there is one)
     def organization = [ name: "Technipelago AB", url: "http://www.technipelago.se/" ]
-
-    // Any additional developers beyond the author specified above.
-//    def developers = [ [ name: "Joe Bloggs", email: "joe@bloggs.net" ]]
-
-    // Location of the plugin's issue tracker.
     def issueManagement = [ system: "github", url: "https://github.com/goeh/grails-recent-domain/issues" ]
-
-    // Online location of the plugin's browseable source code.
     def scm = [ url: "https://github.com/goeh/grails-recent-domain" ]
 
     def doWithDynamicMethods = { ctx ->
@@ -63,10 +43,6 @@ provides tags for rendering "recent viewed" lists.
         for(c in application.controllerClasses) {
             addControllerMethods(config, c.clazz.metaClass, service)
         }
-    }
-
-    def doWithApplicationContext = { applicationContext ->
-        // TODO Implement post initialization spring config (optional)
     }
 
     def onChange = { event ->
@@ -83,7 +59,6 @@ provides tags for rendering "recent viewed" lists.
     }
 
     private void addControllerMethods(config, mc, service) {
-
         mc.rememberDomain = {Object domainInstance, String tag = null ->
             service.remember(domainInstance, request, tag)
         }

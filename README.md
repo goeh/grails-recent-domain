@@ -15,17 +15,17 @@ returned from controller actions can automatically be scanned for domain instanc
 **auto scanning**
 
 The model returned by controller actions can be scanned for domain instances and automatically put on the recent list.
-The configuration parameter *recentDomain.autoscan.actions* specified what controllers and actions to scan.
+The configuration parameter *recentDomain.autoscan.actions* specifies what controllers and actions to scan.
 
 recentDomain.autoscan.actions = ['customer:show', 'project:show']
 
-You can use '*' as a wildcard for both controller and action.
+You can use asterisk (*) as a wildcard for both controller and action.
 
 ## GSP Tags
 
 ### hasHistory
 
-The *hasHistory* tag is used to check if the FIFO contains any domain instances for a specific type.
+The *hasHistory* tag is used to check if the recent list contains any domain instances for a specific type.
 If domain instances exists the tag body is rendered.
 
 Attribute | Description
@@ -39,10 +39,12 @@ tag       | optional tag/sub-group name
 
 ### each
 
+The *each* tag is used to iterate over domain instances in the recent list.
+
 Attribute | Description
 --------- | --------------
 type      | domain class or "property name" of a domain class
-tag       | optional tag/sub-group name
+tag       | optional name of sub-list
 reverse   | true for reversed list (last visited first)
 max       | max number of domain instances to list
 var       | name of attribute holding reference to domain (default 'it')
@@ -70,6 +72,9 @@ If the tag parameter is omitted all domain instances of the same class will be a
 If you want to add domain instances to multiple lists depending on some business logic you can use the tag parameter
 to specify the name of a list.
 
+    def personInstance = Person.get(params.id)
+    rememberDomain(personInstance)
+    
 The tag feature can be used to temporary "remember" a domain instance in a (hidden) list.
 Later in the same user session you can pick up (and remove) the domain instance from the list
 for further processing. It's like the list becomes a long lived flash scope.
@@ -77,3 +82,12 @@ for further processing. It's like the list becomes a long lived flash scope.
 **forgetDomain(Object domainInstance, String tag = null)**
 
 Remove a domain instance from the recent list.
+
+    def personInstance = Person.get(params.id)
+    forgetDomain(personInstance)
+
+## Known issues
+
+- If a domain instance is added to a recent list and then removed from the database
+  it is not automatically removed from the recent list. You must add a call to *forgetDomain*
+  when you remove domain instances that may be in a recent list.

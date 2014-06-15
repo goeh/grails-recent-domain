@@ -12,6 +12,8 @@ returned from controller actions can automatically be scanned for domain instanc
 
 Recent lists are stored in the user's HTTP session.
 
+The [GR8 CRM ecosystem](http://gr8crm.github.io) uses recent-domain plugin for crumb trail support.
+
 ## Configuration
 
 **auto scanning**

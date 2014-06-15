@@ -10,6 +10,8 @@ GSP tags are provided that render a list of domain instances last visited.
 Domain instances can be added to the recent list programatically or models
 returned from controller actions can automatically be scanned for domain instances and put on the recent list.
 
+Recent lists are stored in the user's HTTP session.
+
 ## Configuration
 
 **auto scanning**
@@ -20,6 +22,78 @@ The configuration parameter *recentDomain.autoscan.actions* specifies what contr
 recentDomain.autoscan.actions = ['customer:show', 'project:show']
 
 You can use asterisk (*) as a wildcard for both controller and action.
+
+**white list**
+
+You can restrict what domain classes are added to the recent list with the *recentDomain.include* parameter.
+
+    recentDomain.include = ['com.mycompany.Person']
+
+**black list**
+
+You can restrict what domain classes are added to the recent list with the *recentDomain.exclude* parameter.
+Domain classes specified are excluded and will not be added to a recent list.
+
+    recentDomain.exclude = ['com.mycompany.Address']
+        
+**list size**
+
+The size of a recent list defaults to 25 entries but you can change that with the *recentDomain.maxSize* parameter.
+
+    recentDomain.maxSize = 10
+
+**icons**
+
+You can assign icon names to domain classes and display icons next to domain instances when you display a recent list on screen.
+Add a *recentDomain.icon.<domainClassPropertyName>* parameter for each domain class.
+
+    recentDomain.icon.person = 'user'
+    recentDomain.icon.company = 'house'
+
+When you retrieve a domain instance from the recent list you can read the *icon* property to find out what icon to render.
+
+## RecentDomainService
+
+*RecentDomainService* contains method for interaction with recent lists. If you have configured *autoscan*
+and use the provided GSP tags you will probably not use the service, but if you need more programatic control you
+can use the service to interact with recent lists.
+
+A recent list does not store the actual domain instances. Instead a proxy is stored in the list. This proxy contains
+attributes that you can use when rendering recent lists on the screen.
+
+    String type // Class name of the domain instance
+    Object id   // The primary key of the domain instance
+    String label // The toString() representation of the domain instance
+    String url   // URL in the application that displays the domain instance
+    String icon  // Icon that represents the domain instance
+    Set tags     // Optional set of tags
+
+**remember(Object domainInstance, HttpServletRequest request, String tag = null)**
+
+Add a domain instance to the recent list.
+
+**scan(Object model, HttpServletRequest request)**
+
+Scan a model and look for domain instances. The model can be a List or a Map.
+Every domain instance found are added to the recent list.
+White lists and black lists are checked before adding a domain instance.
+
+**remove(Object domainInstance, HttpServletRequest request, String tag = null)**
+
+**forget(Object domainInstance, HttpServletRequest request, String tag = null)**
+
+Remove a domain instance form a recent list (*forget* is just an alias for *remove*).
+
+**List getHistory(HttpServletRequest request, Object type = null, String tag = null)**
+
+Returns a List containing all recent domain instances or if *type* is specified recent domain instances of a specific type.
+The *type* parameter can be a domain Class or the class name of a domain.
+
+**clearHistory(HttpServletRequest request, Object type = null)**
+
+Clears/removes all entries in a recent list.
+The *type* parameter can be a domain Class or the class name of a domain.
+
 
 ## GSP Tags
 

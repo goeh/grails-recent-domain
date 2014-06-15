@@ -1,6 +1,6 @@
 # Grails Recent Domain Plugin
 
-This plugin can be used to present to the user a list of domain instances that you have previously visited/looked at.
+This plugin can be used to present to the user a list of domain instances that he/she has previously visited/looked at.
 This feature is known as "bread crumb" or "recent list".
 
 Domain instances used in views are pushed onto a FIFO (First In First Out).
@@ -11,8 +11,6 @@ Domain instances can be added to the recent list programatically or models
 returned from controller actions can automatically be scanned for domain instances and put on the recent list.
 
 Recent lists are stored in the user's HTTP session.
-
-The [GR8 CRM ecosystem](http://gr8crm.github.io) uses recent-domain plugin for crumb trail support.
 
 ## Configuration
 
@@ -167,3 +165,7 @@ Remove a domain instance from the recent list.
 - If a domain instance is added to a recent list and then removed from the database
   it is not automatically removed from the recent list. You must add a call to *forgetDomain*
   when you remove domain instances that may be in a recent list.
+
+## Miscellaneous
+
+- The [GR8 CRM ecosystem](http://gr8crm.github.io) uses recent-domain plugin for crumb trail support.

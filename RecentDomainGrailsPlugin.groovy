@@ -15,7 +15,7 @@
  */
 
 class RecentDomainGrailsPlugin {
-    def version = "0.6.0"
+    def version = "0.6.1"
     def grailsVersion = "2.0 > *"
     def dependsOn = [:]
     def pluginExcludes = [
